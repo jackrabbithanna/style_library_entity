@@ -1,0 +1,6 @@
+name = Style Library Field CSS
+description = Provides a field that allows for the input of CSS specifically designed for use with Style Library Entity
+package = Style Library
+core = 7.x
+
+dependencies[] = style_library_entity
