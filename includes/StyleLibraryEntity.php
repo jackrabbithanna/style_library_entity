@@ -182,16 +182,6 @@ class StyleLibraryEntityMetadataController extends EntityDefaultMetadataControll
       'widget' => 'textfield',
       'required' => TRUE,
     );
-    $info[$this->type]['properties']['extension_type'] = array(
-      'label' => t("Extension Type"),
-      'type' => 'text',
-      'description' => t("Theme Extension Type. AT theme extensions generate select lists for choosing style libraries based on this field. For example, the Superfish Menu extension will allow section of all style librares of type Superfish"),
-      'schema field' => 'extension_type',
-      'getter callback' => 'entity_property_verbatim_get',
-      'setter callback' => 'entity_property_verbatim_set',
-      'widget' => 'textfield',
-      'required' => FALSE,
-    );
     $info[$this->type]['properties']['enabled'] = array(
       'label' => t("Enabled"),
       'type' => 'integer',

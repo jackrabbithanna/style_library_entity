@@ -98,21 +98,22 @@ function style_library_entity_form($form, &$form_state, $entity_id, $op, $type) 
         if(isset($info['required']) && $info['required']){
           $form['style_library_entity_properties'][$name]['#required'] = TRUE;
         }
-        if ($name == 'extension_type') {
-          $form['style_library_entity_properties'][$name]['#type'] = 'select';
-          $form['style_library_entity_properties'][$name]['#options'] = [
-            '' => '- None -',
-            'civicrm' => 'CiviCRM',
-            'superfish' => 'Superfish',
-            'webform' => 'Webform',
-          ];
-          unset($form['style_library_entity_properties'][$name]['#size']);
-        }
         if ($name == 'type') {
           $form['style_library_entity_properties'][$name]['#default_value'] = $op == 'update' ? $entity->type : $type;
         }
       } // end if isset widget
     } // end foreach child
+
+    if (!empty($form['field_style_library_ext_types'])) {
+      $form['field_style_library_ext_types']['#weight'] = -9998;
+      foreach ($form['field_style_library_ext_types']['und'] as $index => $fapi_array) {
+        if (is_numeric($index) && $fapi_array['#field_name'] == 'field_style_library_ext_types') {
+          $form['field_style_library_ext_types']['und'][$index]['value']['#type'] = 'select';
+          $form['field_style_library_ext_types']['und'][$index]['value']['#options'] = ['' => '- None -', 'civicrm' => 'CiviCRM', 'superfish' => 'Superfish', 'webform' => 'Webform'];
+          unset($form['field_style_library_ext_types']['und'][$index]['value']['#size']);
+        }
+      }
+    }
 
     $form['actions'] = array(
       '#type' => 'container',

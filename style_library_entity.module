@@ -402,6 +402,54 @@ function style_library_entity_views_api() {
  */
 function style_library_entity_entity_insert($entity, $type) {
   if ($type == 'style_library_entity_type') {
+    // add extension type field
+    if(!field_info_field('field_style_library_ext_types')) {
+      $field = [
+        'translatable' => '0',
+        'settings' => array(
+          'max_length' => '255',
+        ),
+        'field_name' => 'field_style_library_ext_types',
+        'type' => 'text',
+        'active' => '1',
+        'locked' => '0',
+        'cardinality' => '-1',
+      ];
+      field_create_field($field);
+    }
+
+    // create instance
+    $instance = array(
+      'label' => 'Extension Type',
+      'widget' => array(
+        'weight' => '33',
+        'type' => 'text_textfield',
+        'active' => 1,
+        'settings' => array(
+          'size' => '60',
+        ),
+      ),
+      'settings' => array(
+        'text_processing' => '0',
+        'user_register_form' => FALSE,
+      ),
+      'display' => array(
+        'default' => array(
+          'label' => 'above',
+          'type' => 'text_default',
+          'settings' => array(),
+          'weight' => 4,
+        ),
+      ),
+      'required' => 0,
+      'description' => '',
+      'default_value' => NULL,
+      'field_name' => 'field_style_library_ext_types',
+      'entity_type' => 'style_library_entity',
+      'bundle' => $entity->type,
+    );
+    field_create_instance($instance);
+
     // add css file field
     if(!field_info_field('field_style_library_css')) {
       $field = [
@@ -550,7 +598,31 @@ function style_library_entity_entity_insert($entity, $type) {
     );
     field_create_instance($instance);
   }
+}
 
+/**
+ * Implements hook_entity_delete().
+ *
+ * Delete all style library entities of bundle type being deleted.
+ *
+ * @param $entity
+ * @param $type
+ */
+function style_library_entity_entity_delete($entity, $type) {
+  if ($type == 'style_library_entity_type') {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'style_library_entity');
+    $query->entityCondition('bundle', $entity->type);
+    try {
+      $results = $query->execute();
+    }
+    catch (Exception $e) {
+      watchdog('style_library_entity', $e->getMessage());
+    }
+    if (!empty($results['style_library_entity'])) {
+      entity_delete_multiple('style_library_entity', array_keys($results['style_library_entity']));
+    }
+  }
 }
 
 /**
@@ -642,14 +714,14 @@ function style_library_entity_get_style_libraries($type = '', $bundle = '', $ena
     $query->entityCondition('bundle', $bundle);
   }
   if (!empty($type)) {
-    $query->propertyCondition('extension_type', 'civicrm');
+    $query->fieldCondition('field_style_library_ext_types', 'value', $type);
   }
   $query->propertyCondition('enabled', $enabled);
   try {
     $results = $query->execute();
   }
   catch (Exception $e) {
-    watchdog('style_entity_library', $e->getMessage());
+    watchdog('style_library_entity', $e->getMessage());
   }
   if (!empty($results['style_library_entity'])) {
     $style_libraries = entity_load('style_library_entity', array_keys($results['style_library_entity']));

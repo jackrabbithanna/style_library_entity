@@ -72,11 +72,6 @@ function style_library_entity_schema() {
         'type' => 'varchar',
         'length' => '128',
       ),
-      'extension_type' => array(
-        'description' => 'Theme extension type',
-        'type' => 'varchar',
-        'length' => '92',
-      ),
       'enabled' => array(
         'description' => 'Enabled',
         'type' => 'int',
@@ -144,4 +139,13 @@ function style_library_entity_schema() {
   );
 
   return $schema;
+}
+
+/**
+ * Remove Extension Type column from style_library_entity table
+ */
+function style_library_entity_update_7001(&$sandbox) {
+  if (db_field_exists('style_library_entity', 'extension_type')) {
+    db_drop_field('style_library_entity', 'extension_type');
+  }
 }
