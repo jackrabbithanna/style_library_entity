@@ -1,6 +1,7 @@
 name = Style Library Entity
 description = Provides a Style Library Entity type for storing css and js resources for AT theme extensions to use
 core = 7.x
+version = "7.x-0.5"
 package = Style Library
 
 dependencies[] = views
