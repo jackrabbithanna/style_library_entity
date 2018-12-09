@@ -713,7 +713,8 @@ function style_library_entity_get_style_libraries($type = '', $bundle = '', $ena
   if (!empty($bundle)) {
     $query->entityCondition('bundle', $bundle);
   }
-  if (!empty($type)) {
+  $extension_types_field_info = field_info_field('field_style_library_ext_types');
+  if (!empty($extension_types_field_info) && !empty($type)) {
     $query->fieldCondition('field_style_library_ext_types', 'value', $type);
   }
   $query->propertyCondition('enabled', $enabled);

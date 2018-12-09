@@ -320,8 +320,10 @@ function style_library_field_css_field_load($entity_type, $entities, $field, $in
     if ($instances[$entity_id]['widget']['type'] == 'style_library_field_css_structured_widget') {
       $expanded_items = _style_library_field_css_expand_items($items[$entity_id]);
       unset($items);
-      foreach ($expanded_items as $delta => $item) {
-        $items[$entity_id][$delta] = $item;
+      if (!empty($expanded_items)) {
+        foreach ($expanded_items as $delta => $item) {
+          $items[$entity_id][$delta] = $item;
+        }
       }
     }
   }
