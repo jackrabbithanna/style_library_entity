@@ -2,733 +2,140 @@
 
 /**
  * @file
- * Module Style Library Entity
+ * Contains style_library_entity.module.
  */
 
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Asset\AttachedAssetsInterface;
+
 /**
- * Implements hook_permission().
+ * Implements hook_help().
  */
-function style_library_entity_permission() {
-  $permissions = [
-    'administer style library entity' => [
-      'title' => t('Administer Style Library Entity module'),
-      'description' => t('Administer Style Library Entity module'),
-    ],
-    'view style library entity records' => [
-      'title' => t('View Style Library Entity Records'),
-      'description' => t('View all Style Library Entity Records'),
-    ],
-    'create style library entity records' => [
-      'title' => t('Create Style Library Entity Records'),
-      'description' => t('Create Style Library Entity Records'),
-    ],
-    'edit style library entity records' => [
-      'title' => t('Edit Style Library Entity Records'),
-      'description' => t('Edit all Style Library Entity Records'),
-    ],
-    'delete style library entity records' => [
-      'title' => t('Delete Style Library Entity Records'),
-      'description' => t('Delete all Style Library Entity Records'),
-    ],
-    'administer style library entity types' => [
-      'title' => t('Administer Style Library Entity types'),
-      'description' => t('Create and delete fields for Style Library Entity types, and set their permissions.'),
-    ],
+function style_library_entity_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the style_library_entity module.
+    case 'help.page.style_library_entity':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Provides a Style Library Entity type for storing css and js resources for themes and modules to use') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function style_library_entity_theme() {
+  $theme = [];
+  $theme['style_library_entity'] = [
+    'render element' => 'elements',
+    'file' => 'style_library_entity.page.inc',
+    'template' => 'style_library_entity',
   ];
-  return $permissions;
-}
-
-function style_library_entity_menu() {
-  $items = [];
-  $items['admin/appearance/style-library-entity/settings'] = [
-    'title'            => 'Style Library Settings',
-    'description'      => 'Modify style library settings.',
-    'page callback'    => 'drupal_get_form',
-    'page arguments'   => ['style_library_entity_settings_form'],
-    'access callback'  => 'user_access',
-    'access arguments' => ['administer style library entity'],
-    'type'             => MENU_LOCAL_TASK,
-    'file'             => 'config.forms.inc',
-    'file path'        => drupal_get_path('module', 'style_library_entity') . '/forms',
-    'weight'           => -10,
+  $theme['style_library_entity_content_add_list'] = [
+    'render element' => 'content',
+    'variables' => ['content' => NULL],
+    'file' => 'style_library_entity.page.inc',
   ];
-  return $items;
+  return $theme;
 }
 
-
 /**
- * Implement hook_entity_info().
+ * Implements hook_theme_suggestions_HOOK().
  */
-function style_library_entity_entity_info() {
-  $return['style_library_entity'] = array(
-    'label' => t('Style Library Entity'),
-    // The entity class and controller class extend the classes provided by the
-    // Entity API
-    'entity class' => 'StyleLibraryEntity',
-    'controller class' => 'StyleLibraryEntityController',
-    'metadata controller class' => 'StyleLibraryEntityMetadataController',
-    'views controller class' => 'StyleLibraryEntityDefaultViewsController',
-    'extra fields controller class' => 'StyleLibraryEntityExtraFieldsController',
-    'base table' => 'style_library_entity',
-    'fieldable' => TRUE,
-    'entity keys' => array(
-      'id' => 'slid',
-      'label' => 'name',
-      'bundle' => 'type',
-    ),
-    'bundles' => [],
-    'bundle keys' => array(
-      'bundle' => 'type',
-    ),
-    'uri callback' => 'entity_class_uri',
-    'creation callback' => 'style_library_entity_create',
-    'access callback' => 'style_library_entity_entity_access',
-    'module' => 'style_library_entity',
-    'admin ui' => array(
-      'path' => 'admin/appearance/style-library-entity',
-      'file' => 'includes/StyleLibraryEntity.php',
-      'controller class' => 'StyleLibraryEntityUIController',
-      'menu wildcard' => '%entity',
-    ),
-    'view modes' => array(
-      'full' => array(
-        'label' => t('Full content'),
-        'custom settings' => FALSE,
-      ),
-    ),
-  );
+function style_library_entity_theme_suggestions_style_library_entity(array $variables) {
+  $suggestions = [];
+  $entity = $variables['elements']['#style_library_entity'];
+  $sanitized_view_mode = strtr($variables['elements']['#view_mode'], '.', '_');
 
-  $return['style_library_entity_type'] = array(
-    'label' => t('Style Library Entity Type'),
-    'entity class' => 'StyleLibraryEntityType',
-    'controller class' => 'StyleLibraryEntityTypeController',
-    'base table' => 'style_library_entity_type',
-    'fieldable' => FALSE,
-    'bundle of' => 'style_library_entity',
-    'exportable' => TRUE,
-    'entity keys' => array(
-      'id' => 'id',
-      'name' => 'type',
-      'label' => 'label',
-    ),
-    'access callback' => 'style_library_entity_type_access',
-    'module' => 'style_library_entity',
-    // Enable the entity API's admin UI.
-    'admin ui' => array(
-      'path' => 'admin/appearance/style-library-entity/types',
-      'file' => 'style_library_entity_type.admin.inc',
-      'controller class' => 'StyleLibraryEntityTypeUIController',
-    ),
-  );
-
-  return $return;
+  $suggestions[] = 'style_library_entity__' . $sanitized_view_mode;
+  $suggestions[] = 'style_library_entity__' . $entity->bundle();
+  $suggestions[] = 'style_library_entity__' . $entity->bundle() . '__' . $sanitized_view_mode;
+  $suggestions[] = 'style_library_entity__' . $entity->id();
+  $suggestions[] = 'style_library_entity__' . $entity->id() . '__' . $sanitized_view_mode;
+  return $suggestions;
 }
 
 /**
- * Implements hook_entity_info_alter().
- *
- * We are adding the info about the style_library_entity types via a hook to avoid a recursion
- * issue as loading the style_library_entity types requires the entity info as well.
- *
- * @todo This needs to be improved
- */
-function style_library_entity_entity_info_alter(&$entity_info) {
-  foreach (style_library_entity_get_types() as $type => $info) {
-    $entity_info['style_library_entity']['bundles'][$type] = array(
-      'label' => $info->label,
-      'admin' => array(
-        'path' => 'admin/appearance/style-library-entity/types/manage/%style_library_entity_type_loader',
-        'real path' => 'admin/appearance/style-library-entity/types/manage/' . $type,
-        'bundle argument' => 5,
-        'access arguments' => array('administer style library entity types'),
-      ),
-    );
-  }
-}
-
-/**
- * Gets an array of all style_library_entity types, keyed by the type name.
- *
- * @param $type_name
- *   If set, the type with the given name is returned.
- * @return StyleLibraryEntityType[]
- *   Depending whether $type isset, an array of style_library_entity types or a single one.
- */
-function style_library_entity_get_types($type_name = NULL) {
-  // entity_load will get the Entity controller for our style_library_entity entity and call the load
-  // function of that object - we are loading entities by name here.
-  $types = entity_load_multiple_by_name('style_library_entity_type', isset($type_name) ? array($type_name) : FALSE);
-  return isset($type_name) ? reset($types) : $types;
-}
-
-/**
- *  Implements hook_form_FORMID_alter().
- *
- *  Adds a submit handler when saving the manage display forms
- */
-function style_library_entity_form_field_ui_display_overview_form_alter(&$form, &$form_state) {
-  if($form['#entity_type'] == 'style_library_entity') {
-    $submits = array();
-    $submits[] = '_style_library_entity_manage_display_submit';
-    foreach($form['#submit'] as $submit_callback){
-      $submits[] = $submit_callback;
-    }
-    $form['#submit'] = $submits;
-  }
-}
-
-/**
- * Submit handler for making sure our display suited entity properties are visible
- */
-function _style_library_entity_manage_display_submit(&$form, &$form_state) {
-  if(isset($form_state['values']['additional_settings']['layout']) && $form_state['values']['additional_settings']['layout']!= ''){
-    $entity_type = $form['#entity_type'];
-    $bundle = $form['#bundle'];
-    $bundle_settings = field_bundle_settings($entity_type, $bundle);
-
-    foreach($bundle_settings['extra_fields']['display'] as $key => $field) {
-      $form_state['values']['fields'][$key]['type'] = 'visible';
-    }
-  }
-}
-
-/**
- * Implements hook_ds_field_settings_form().
- */
-function style_library_entity_ds_field_settings_form($field) {
-  return ds_ds_field_settings_form($field);
-}
-
-/**
- * Implements hook_ds_field_format_summary().
- */
-function style_library_entity_ds_field_format_summary($field) {
-  return ds_ds_field_format_summary($field);
-}
-
-
-/**
- * Auto wildcard loader to load the expiration record entity if available.
- *
- */
-function style_library_entity_loader_load($id) {
-  $entity = entity_load_single('style_library_entity', $id);
-  if($entity) {
-    return $entity;
-  }
-  else return $id;
-}
-
-/**
- * Menu argument loader; Load a style_library_entity type by string.
- *
- * @param $type
- *   The machine-readable name of a style_library_entity type to load.
- * @return array|bool
- *   A style_library_entity type array or FALSE if $type does not exist.
- */
-function style_library_entity_type_loader_load($type) {
-  return style_library_entity_get_types($type);
-}
-
-/**
- * Access callback for the Style Library Entity Types.
- */
-function style_library_entity_type_access($op, $type = NULL, $account = NULL) {
-  return user_access('administer style library entity types', $account);
-}
-
-
-/**
- * Determines whether the given user has access to a style library entity record.
- *
- * @param $op
- *   The operation being performed. One of 'view', 'update', 'create', 'delete'
- *   or just 'edit' (being the same as 'create' or 'update').
- * @param $entity
- *   Optionally a entity or a entity type to check access for. If nothing is
- *   given, access for all entities is determined.
- * @param $account
- *   The user to check for. Leave it to NULL to check for the global user.
- * @return boolean
- *   Whether access is allowed or not.
- */
-function style_library_entity_entity_access($op = 'admin', $entity = NULL, $account = NULL) {
-
-  if (is_null($account)) {
-    global $user;
-    $account = user_load($user->uid);
-  }
-  else {
-    if (is_int($account)) {
-      $account = user_load($account);
-    }
-  }
-
-  switch($op) {
-    case 'view':
-      return user_access('view style library entity records', $account);
-    case 'update':
-      return user_access('edit style library entity records', $account);
-    case 'create':
-      return user_access('create style library entity records', $account);
-    case 'delete':
-      return user_access('delete style library entity records', $account);
-    default :
-      return user_access('administer style library entity', $account);
-  }
-}
-
-/**
- * Fetch a style library entity object.
- *
- * @param $id
- *   Integer specifying the entity id.
- * @param $reset
- *   A boolean indicating that the internal cache should be reset.
- * @return
- *   A fully-loaded $entity object or FALSE if it cannot be loaded.
- *
- * @see load_multiple()
- */
-function style_library_entity_load($id, $reset = FALSE) {
-  $entities = style_library_entity_load_multiple(array($id), array(), $reset);
-  return reset($entities);
-}
-
-/**
- * Load multiple style library entity based on certain conditions.
- *
- * @param $ids
- *   An array of entity IDs.
- * @param $conditions
- *   An array of conditions to match against the {entity} table.
- * @param $reset
- *   A boolean indicating that the internal cache should be reset.
- * @return
- *   An array of entity objects, indexed by id.
- *
- * @see entity_load()
- */
-function style_library_entity_load_multiple($ids = array(), $conditions = array(), $reset = FALSE) {
-  return entity_load('style_library_entity', $ids, $conditions, $reset);
-}
-
-/**
- * Delete style library entity
- *
- * @param \StyleLibraryEntity $entity
- */
-function style_library_entity_delete(StyleLibraryEntity $entity) {
-  $entity->delete();
-}
-
-/**
- * Delete multiple style library entitys.
- *
- * @param $ids
- *   An array of entity IDs.
- */
-function style_library_entity_delete_multiple(array $ids) {
-  entity_get_controller('style_library_entity')->delete($ids);
-}
-
-/**
- * Create a style library entity object.
- */
-function style_library_entity_create($values = []) {
-  return entity_get_controller('style_library_entity')->create($values);
-}
-
-/**
- * Saves a style library entity to the database.
- *
- * @param $entity
- *   The entity object.
- */
-function style_library_entity_save(StyleLibraryEntity $entity) {
-  return $entity->save();
-}
-
-/**
- * Menu title callback for showing individual entities
- */
-function style_library_entity_page_title(StyleLibraryEntity $entity){
-  return $entity->slid;
-}
-
-/**
- * Creates a style_library_entity type to the db.
- *
- * @param $values
- */
-function style_library_entity_type_create($values = []) {
-  return entity_get_controller('style_library_entity_type')->create($values);
-}
-
-/**
- * Saves a style_library_entity type to the db.
- *
- * @param \StyleLibraryEntityType $type
- */
-function style_library_entity_type_save(StyleLibraryEntityType $type) {
-  $type->save();
-}
-
-
-/**
- * Deletes a civiimport type from the db.
- *
- * @param \StyleLibraryEntityType $type
- */
-function style_library_entity_type_delete(StyleLibraryEntityType $type) {
-  $type->delete();
-}
-
-/**
- * Implements hook_views_api().
- */
-function style_library_entity_views_api() {
-  return array(
-    'api' => 3,
-    'path' => drupal_get_path('module', 'style_library_entity') . '/views',
-  );
-}
-
-/**
- * Implements hook_entity_insert().
- * @param $entity
- * @param $type
- */
-function style_library_entity_entity_insert($entity, $type) {
-  if ($type == 'style_library_entity_type') {
-    // add extension type field
-    if(!field_info_field('field_style_library_ext_types')) {
-      $field = [
-        'translatable' => '0',
-        'settings' => array(
-          'max_length' => '255',
-        ),
-        'field_name' => 'field_style_library_ext_types',
-        'type' => 'text',
-        'active' => '1',
-        'locked' => '0',
-        'cardinality' => '-1',
-      ];
-      field_create_field($field);
-    }
-
-    // create instance
-    $instance = array(
-      'label' => 'Extension Type',
-      'widget' => array(
-        'weight' => '33',
-        'type' => 'text_textfield',
-        'active' => 1,
-        'settings' => array(
-          'size' => '60',
-        ),
-      ),
-      'settings' => array(
-        'text_processing' => '0',
-        'user_register_form' => FALSE,
-      ),
-      'display' => array(
-        'default' => array(
-          'label' => 'above',
-          'type' => 'text_default',
-          'settings' => array(),
-          'weight' => 4,
-        ),
-      ),
-      'required' => 0,
-      'description' => '',
-      'default_value' => NULL,
-      'field_name' => 'field_style_library_ext_types',
-      'entity_type' => 'style_library_entity',
-      'bundle' => $entity->type,
-    );
-    field_create_instance($instance);
-
-    // add css file field
-    if(!field_info_field('field_style_library_css')) {
-      $field = [
-        'translatable' => '0',
-        'settings'     => [
-          'display_field'   => 0,
-          'display_default' => 0,
-          'uri_scheme'      => 'public',
-        ],
-        'field_name'   => 'field_style_library_css',
-        'type'         => 'file',
-        'active'       => '1',
-        'locked'       => '0',
-        'cardinality'  => '-1',
-      ];
-      field_create_field($field);
-    }
-
-    // create instance
-    $instance = array(
-      'label' => 'CSS Files',
-      'widget' => array(
-        'weight' => '1',
-        'type' => 'file_generic',
-        'active' => 1,
-        'settings' => array(
-          'progress_indicator' => 'throbber',
-        ),
-      ),
-      'settings' => array(
-        'file_directory' => 'style-library-entity/css',
-        'file_extensions' => 'css',
-        'max_filesize' => '',
-        'description_field' => 0,
-        'user_register_form' => FALSE,
-      ),
-      'display' => array(
-        'default' => array(
-          'label' => 'above',
-          'type' => 'file_default',
-          'settings' => array(),
-          'weight' => 0,
-        ),
-      ),
-      'required' => 0,
-      'description' => '',
-      'field_name' => 'field_style_library_css',
-      'entity_type' => 'style_library_entity',
-      'bundle' => $entity->type,
-    );
-    field_create_instance($instance);
-
-    if(!field_info_field('field_style_library_js')) {
-      $field = [
-        'translatable' => '0',
-        'settings'     => [
-          'display_field'   => 0,
-          'display_default' => 0,
-          'uri_scheme'      => 'public',
-        ],
-        'field_name'   => 'field_style_library_js',
-        'type'         => 'file',
-        'active'       => '1',
-        'locked'       => '0',
-        'cardinality'  => '-1',
-      ];
-      field_create_field($field);
-    }
-
-    // create instance
-    $instance = array(
-      'label' => 'JS Files',
-      'widget' => array(
-        'weight' => '1',
-        'type' => 'file_generic',
-        'active' => 1,
-        'settings' => array(
-          'progress_indicator' => 'throbber',
-        ),
-      ),
-      'settings' => array(
-        'file_directory' => 'style-library-entity/js',
-        'file_extensions' => 'css',
-        'max_filesize' => '',
-        'description_field' => 0,
-        'user_register_form' => FALSE,
-      ),
-      'display' => array(
-        'default' => array(
-          'label' => 'above',
-          'type' => 'file_default',
-          'settings' => array(),
-          'weight' => 0,
-        ),
-      ),
-      'required' => 0,
-      'description' => '',
-      'field_name' => 'field_style_library_js',
-      'entity_type' => 'style_library_entity',
-      'bundle' => $entity->type,
-    );
-    field_create_instance($instance);
-
-    if(!field_info_field('field_style_library_add_css')) {
-      $field = [
-        'translatable' => '0',
-        'settings'     => [],
-        'field_name'   => 'field_style_library_add_css',
-        'type'         => 'text_long',
-        'active'       => '1',
-        'locked'       => '0',
-        'cardinality'  => '1',
-      ];
-      field_create_field($field);
-    }
-
-    $instance = array(
-      'label' => 'Additional CSS',
-      'widget' => array(
-        'weight' => '2',
-        'type' => 'text_textarea',
-        'active' => 1,
-        'settings' => array(
-          'rows' => '10',
-        ),
-      ),
-      'settings' => array(
-        'text_processing' => '0',
-        'user_register_form' => FALSE,
-      ),
-      'display' => array(
-        'default' => array(
-          'label' => 'above',
-          'type' => 'text_default',
-          'settings' => array(),
-          'weight' => 1,
-        ),
-      ),
-      'required' => 0,
-      'description' => '',
-      'fences_wrapper' => 'div_div_div',
-      'default_value' => NULL,
-      'field_name' => 'field_style_library_add_css',
-      'entity_type' => 'style_library_entity',
-      'bundle' => $entity->type,
-    );
-    field_create_instance($instance);
-  }
-}
-
-/**
- * Implements hook_entity_delete().
- *
- * Delete all style library entities of bundle type being deleted.
- *
- * @param $entity
- * @param $type
- */
-function style_library_entity_entity_delete($entity, $type) {
-  if ($type == 'style_library_entity_type') {
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'style_library_entity');
-    $query->entityCondition('bundle', $entity->type);
-    try {
-      $results = $query->execute();
-    }
-    catch (Exception $e) {
-      watchdog('style_library_entity', $e->getMessage());
-    }
-    if (!empty($results['style_library_entity'])) {
-      entity_delete_multiple('style_library_entity', array_keys($results['style_library_entity']));
-    }
-  }
-}
-
-/**
- * Utility function to compile all Style Library CSS sources and add to the theme
+ * Implements hook_ENTITY_TYPE_delete().
  *
  * @param $style_library
  */
-function style_library_entity_add_style_library_css_to_theme($style_library) {
-  if (!empty($style_library->enabled)) {
-    // load css file
-    if (!empty($style_library->field_style_library_css['und'])) {
-      foreach ($style_library->field_style_library_css['und'] as $delta => $css_file) {
-        $path = file_create_url($css_file['uri']);
-        drupal_add_css($path,
-          [
-            'group'      => CSS_THEME,
-            'media'      => 'screen',
-            'preprocess' => FALSE,
-            'weight'     => '9997',
-          ]);
-      }
-    }
-
-    if (module_exists('style_library_field_css')) {
-      $css = style_library_field_get_css_for_style_library($style_library);
-      if (!empty($css)) {
-        drupal_add_css($css,
-          [
-            'group'      => CSS_THEME,
-            'type'       => 'inline',
-            'media'      => 'screen',
-            'preprocess' => FALSE,
-            'weight'     => '9998',
-          ]);
-      }
-    }
-
-    // add css from Additional CSS text field..
-    if (!empty($style_library->field_style_library_add_css['und'][0]['value'])) {
-      drupal_add_css($style_library->field_style_library_add_css['und'][0]['value'],
-        [
-          'group'      => CSS_THEME,
-          'type'       => 'inline',
-          'media'      => 'screen',
-          'preprocess' => FALSE,
-          'weight'     => '9999',
-        ]);
-    }
-  }
-}
-
-/**
- * Utility function to add style library js to theme
- *
- * @param $style_library
- */
-function style_library_entity_add_style_library_js_to_theme($style_library) {
-  if (!empty($style_library->enabled)) {
-    // load css file
-    if (!empty($style_library->field_style_library_js['und'])) {
-      foreach ($style_library->field_style_library_js['und'] as $delta => $js_file) {
-        $path = file_create_url($js_file['uri']);
-        drupal_add_js($path,
-          [
-            'group'      => JS_THEME,
-            'scope'      => 'header',
-            'every_page' => TRUE,
-            'weight'     => '9997',
-          ]);
-      }
-    }
-  }
-}
-
-/**
- * Utility function to query style libraries by type, bundle, enabled (all optional)
- *
- * @param string $bundle
- * @param string $type
- * @param int $enabled
- *
- * @return array
- */
-function style_library_entity_get_style_libraries($type = '', $bundle = '', $enabled = 1) {
-  $library_options = [];
-  $query = new EntityFieldQuery();
-  $query->entityCondition('entity_type', 'style_library_entity');
-  if (!empty($bundle)) {
-    $query->entityCondition('bundle', $bundle);
-  }
-  $extension_types_field_info = field_info_field('field_style_library_ext_types');
-  if (!empty($extension_types_field_info) && !empty($type)) {
-    $query->fieldCondition('field_style_library_ext_types', 'value', $type);
-  }
-  $query->propertyCondition('enabled', $enabled);
+function style_library_entity_style_library_entity_delete($style_library) {
   try {
-    $results = $query->execute();
+    $style_library_entity_service = \Drupal::service('style_library_entity.service');
+    $style_library_entity_service->deleteAdditionalCssFile($style_library);
   }
   catch (Exception $e) {
-    watchdog('style_library_entity', $e->getMessage());
+    \Drupal::logger('style_library_entity')
+      ->notice('The additional css file could not be deleted.');
   }
-  if (!empty($results['style_library_entity'])) {
-    $style_libraries = entity_load('style_library_entity', array_keys($results['style_library_entity']));
+}
+
+/**
+ * Implements hook_library_info_build().
+ *
+ * Setup Drupal "Libraries" for each enabled style library entity
+ */
+function style_library_entity_library_info_build() {
+  $libraries = [];
+  $style_library_entity_service = \Drupal::service('style_library_entity.service');
+  $style_libraries = $style_library_entity_service->loadEnabledStyleEntities(TRUE);
+  if (!empty($style_libraries)) {
     foreach ($style_libraries as $style_library) {
-      $library_options[$style_library->slid] = $style_library->name;
+      $css_urls = $style_library_entity_service->buildCssFileArrayForEntity($style_library);
+      if (!empty($css_urls)) {
+        foreach ($css_urls as $css_url) {
+          $libraries['style-library-entity-' . $style_library->id()]['css']['theme'][$css_url] = ['type' => 'external', 'weight' => $style_library->get('weight')->value];
+        }
+      }
+      $js_urls = $style_library_entity_service->buildJsFileArrayForEntity($style_library);
+      if (!empty($js_urls)) {
+        foreach ($js_urls as $js_url) {
+          $libraries['style-library-entity-' . $style_library->id()]['js'][$js_url] = ['type' => 'external', 'weight' => $style_library->get('weight')->value];
+        }
+      }
     }
   }
-  return $library_options;
+  return $libraries;
+}
+
+/**
+ * Set the "group" of our style library styles so they take precedence even over the theme
+ *
+ * @param $css
+ * @param \Drupal\Core\Asset\AttachedAssetsInterface $assets
+ */
+function style_library_entity_css_alter(&$css, AttachedAssetsInterface $assets) {
+  if (!empty($css)) {
+    foreach ($css as $name => $c) {
+      if (strpos($name, 'style-library-entity') !== FALSE) {
+        // give high group number so that css takes precedence ..
+        $css[$name]['group'] = 200;
+        // change type from external to file .. this makes the CSS be included in aggregation
+        $css[$name]['type'] = 'file';
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_html()
+ *
+ * Load all "global" style library entities libraries to the root of the page build
+ *
+ * @param $variables
+ */
+function style_library_entity_preprocess_html(&$variables) {
+  $style_library_entity_service = \Drupal::service('style_library_entity.service');
+  $enabled = TRUE;
+  $global = TRUE;
+  $style_libraries = $style_library_entity_service->loadEnabledStyleEntities($enabled, $global);
+  if (!empty($style_libraries)) {
+    foreach ($style_libraries as $style_library) {
+      $variables['#attached']['library'][] = 'style_library_entity/style-library-entity-' . $style_library->id();
+    }
+  }
 }

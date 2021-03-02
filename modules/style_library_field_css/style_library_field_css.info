@@ -1,7 +1,0 @@
-name = Style Library Field CSS
-description = Provides a field that allows for the input of CSS specifically designed for use with Style Library Entity
-package = Style Library
-core = 7.x
-version = "7.x-0.5"
-
-dependencies[] = style_library_entity
