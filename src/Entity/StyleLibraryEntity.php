@@ -346,6 +346,8 @@ class StyleLibraryEntity extends ContentEntityBase implements StyleLibraryEntity
       ->setLabel(t('Changed'))
       ->setDescription(t('The time that the entity was last edited.'));
 
+    $renderCache = \Drupal::service('cache.entity');
+    $renderCache->deleteAll(); 
 
     return $fields;
   }
